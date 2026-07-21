@@ -12,5 +12,5 @@ const environment = environmentSchema.parse(process.env);
 const application = createApplication(environment);
 
 void application.bot.start({
-  allowed_updates: ['message'],
+  allowed_updates: ['message', 'callback_query'],
 });
