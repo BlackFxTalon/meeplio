@@ -46,9 +46,27 @@ Meeplio — русскоязычный Telegram-бот, который помо�
 - ESLint, Prettier и Vitest;
 - GitHub Actions для CI/CD.
 
-## Статус
+## Начало работы
 
-Проект находится на этапе начальной настройки. Команды установки и запуска появятся после создания базовой инфраструктуры в [issue #2](https://github.com/BlackFxTalon/meeplio/issues/2).
+Требуется Node.js 22 или новее.
+
+```bash
+npm install
+cp .env.example .env
+# Укажите BOT_TOKEN в .env или в переменных окружения shell
+BOT_TOKEN=<token> npm run dev
+```
+
+| Команда          | Назначение                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `npm run dev`    | Запускает бота в polling-режиме с перезапуском при изменениях.                                       |
+| `npm run build`  | Компилирует TypeScript в `dist/`.                                                                    |
+| `npm test`       | Запускает unit-тесты.                                                                                |
+| `npm run lint`   | Проверяет код ESLint.                                                                                |
+| `npm run format` | Форматирует исходники через Prettier.                                                                |
+| `npm run import` | Зарезервирована для импорта каталога в [issue #4](https://github.com/BlackFxTalon/meeplio/issues/4). |
+
+На этом этапе бот отвечает на `/start`, `/help` и `/health`.
 
 Текущий план работы ведётся в GitHub Issues:
 
