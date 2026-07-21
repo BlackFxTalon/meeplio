@@ -83,6 +83,8 @@ export function createBot(
       );
       if (result.kind === 'complete') {
         await context.reply('Спасибо! Подбор игр появится в следующем сообщении.');
+      } else if (result.kind === 'recovery') {
+        await replyWithSurveyStart(context, result);
       } else if (result.kind === 'duplicate') {
         return;
       } else {

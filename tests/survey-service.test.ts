@@ -47,7 +47,7 @@ describe('SurveyService', () => {
     expect(repository.session?.answers).toEqual({ mood: 'social' });
 
     now = new Date('2026-07-22T10:00:01Z');
-    const duplicate = await service.answer(started.session.id, 42, 'complexity_pref', 'easy');
+    const duplicate = await service.answer(started.session.id, 42, 'mood', 'social');
     expect(duplicate).toMatchObject({ kind: 'duplicate', question: { key: 'complexity_pref' } });
     expect(repository.session?.answers).toEqual({ mood: 'social' });
   });

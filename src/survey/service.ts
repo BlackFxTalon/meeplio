@@ -121,10 +121,11 @@ export type SurveyAnswerResult =
       guidance?: 'strategy_short_time';
     }
   | { kind: 'duplicate'; session: SurveySession; question: SurveyQuestion }
+  | { kind: 'recovery'; session: SurveySession }
   | { kind: 'complete'; session: SurveySession };
 
 export class SurveyService {
-  private readonly lastAnswerAtByUserId = new Map<number, number>();
+  private readonly lastAnswerAtByAction = new Map<string, number>();
 
   constructor(
     private readonly repository: SurveySessionRepository,
@@ -177,8 +178,19 @@ export class SurveyService {
     const session = await this.sessionForUser(sessionId, userId);
     const currentQuestion = this.nextQuestion(session);
 
+    if (this.isExpired(session)) {
+      return { kind: 'recovery', session };
+    }
+
     if (!currentQuestion) {
       return { kind: 'complete', session: await this.repository.complete(session.id) };
+    }
+
+    const actionKey = `${userId}:${session.id}:${key}:${value}`;
+    const now = this.now().getTime();
+    const lastAnswerAt = this.lastAnswerAtByAction.get(actionKey);
+    if (lastAnswerAt !== undefined && now - lastAnswerAt < 3000) {
+      return { kind: 'duplicate', session, question: currentQuestion };
     }
 
     if (currentQuestion.key !== key) {
@@ -189,12 +201,7 @@ export class SurveyService {
       throw new Error('Survey answer is not valid for the current question.');
     }
 
-    const now = this.now().getTime();
-    const lastAnswerAt = this.lastAnswerAtByUserId.get(userId);
-    if (lastAnswerAt !== undefined && now - lastAnswerAt < 3000) {
-      return { kind: 'duplicate', session, question: currentQuestion };
-    }
-    this.lastAnswerAtByUserId.set(userId, now);
+    this.lastAnswerAtByAction.set(actionKey, now);
 
     const updatedSession = await this.repository.saveAnswer(session.id, key, value);
     const nextQuestion = this.nextQuestion(updatedSession);
@@ -238,5 +245,9 @@ export class SurveyService {
       session.answers.mood === 'strategy' &&
       (session.answers.time_limit === '20' || session.answers.time_limit === '40')
     );
+  }
+
+  private isExpired(session: SurveySession): boolean {
+    return this.now().getTime() - session.updatedAt.getTime() > 60 * 60 * 1000;
   }
 }
