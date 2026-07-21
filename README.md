@@ -57,14 +57,14 @@ cp .env.example .env
 BOT_TOKEN=<token> npm run dev
 ```
 
-| Команда          | Назначение                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `npm run dev`    | Запускает бота в polling-режиме с перезапуском при изменениях.                                       |
-| `npm run build`  | Компилирует TypeScript в `dist/`.                                                                    |
-| `npm test`       | Запускает unit-тесты.                                                                                |
-| `npm run lint`   | Проверяет код ESLint.                                                                                |
-| `npm run format` | Форматирует исходники через Prettier.                                                                |
-| `npm run import` | Зарезервирована для импорта каталога в [issue #4](https://github.com/BlackFxTalon/meeplio/issues/4). |
+| Команда          | Назначение                                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`    | Запускает бота в polling-режиме с перезапуском при изменениях.                                                                                                 |
+| `npm run build`  | Компилирует TypeScript в `dist/`.                                                                                                                              |
+| `npm test`       | Запускает unit-тесты.                                                                                                                                          |
+| `npm run lint`   | Проверяет код ESLint.                                                                                                                                          |
+| `npm run format` | Форматирует исходники через Prettier.                                                                                                                          |
+| `npm run import` | Импортирует `data/seed-catalog.json` в Supabase. Для другого CSV/JSON-файла: `npm run import -- путь/к/каталогу.csv`. Требует `SUPABASE_URL` и `SUPABASE_KEY`. |
 
 На этом этапе бот отвечает на `/start`, `/help` и `/health`.
 

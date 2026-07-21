@@ -1,0 +1,167 @@
+[
+  {
+    "title": "Бирмингем",
+    "bgg_id": 224517,
+    "min_players": 2,
+    "max_players": 4,
+    "min_age": 14,
+    "play_time_min": 60,
+    "play_time_max": 120,
+    "complexity_score": 3.87,
+    "categories": ["strategy", "economic"],
+    "mechanics": ["network-building", "hand-management"],
+    "moods": ["strategic", "competitive"],
+    "why_play": ["Глубокая экономическая стратегия", "Сильное взаимодействие между игроками"],
+    "avoid_if": ["Нужна быстрая и простая игра", "Не нравится жёсткая конкуренция"]
+  },
+  {
+    "title": "Ковчег",
+    "bgg_id": 342942,
+    "min_players": 1,
+    "max_players": 4,
+    "min_age": 14,
+    "play_time_min": 90,
+    "play_time_max": 150,
+    "complexity_score": 3.76,
+    "categories": ["strategy", "economic"],
+    "mechanics": ["tableau-building", "card-drafting"],
+    "moods": ["strategic", "calm"],
+    "why_play": ["Развитие собственного зоопарка", "Много вариантов для долгосрочной стратегии"],
+    "avoid_if": ["Есть мало времени", "Компания только начинает знакомство с настольными играми"]
+  },
+  {
+    "title": "Дюна: Империум",
+    "bgg_id": 316554,
+    "min_players": 1,
+    "max_players": 4,
+    "min_age": 14,
+    "play_time_min": 60,
+    "play_time_max": 120,
+    "complexity_score": 3.03,
+    "categories": ["strategy", "science-fiction"],
+    "mechanics": ["deck-building", "worker-placement"],
+    "moods": ["strategic", "competitive"],
+    "why_play": [
+      "Сочетает построение колоды и размещение рабочих",
+      "Напряжённая борьба за ключевые действия"
+    ],
+    "avoid_if": [
+      "Не знакомы с современными стратегиями",
+      "Не нравится соревновательное взаимодействие"
+    ]
+  },
+  {
+    "title": "Покорение Марса",
+    "bgg_id": 167791,
+    "min_players": 1,
+    "max_players": 5,
+    "min_age": 12,
+    "play_time_min": 90,
+    "play_time_max": 150,
+    "complexity_score": 3.26,
+    "categories": ["strategy", "science-fiction"],
+    "mechanics": ["engine-building", "card-drafting"],
+    "moods": ["strategic", "competitive"],
+    "why_play": [
+      "Можно строить уникальный движок",
+      "Тема терраформирования развивается прямо на поле"
+    ],
+    "avoid_if": ["Нужна партия до часа", "Не хочется большого числа карт и эффектов"]
+  },
+  {
+    "title": "Мрачная гавань",
+    "bgg_id": 174430,
+    "min_players": 1,
+    "max_players": 4,
+    "min_age": 14,
+    "play_time_min": 60,
+    "play_time_max": 120,
+    "complexity_score": 3.91,
+    "categories": ["adventure", "fantasy"],
+    "mechanics": ["campaign", "cooperative", "hand-management"],
+    "moods": ["adventure", "cooperative"],
+    "why_play": ["Кооперативная кампания с развитием персонажей", "Тактические бои без ведущего"],
+    "avoid_if": ["Нет желания играть сериями", "Нужны простые правила для первого вечера"]
+  },
+  {
+    "title": "Крылья",
+    "bgg_id": 266192,
+    "min_players": 1,
+    "max_players": 5,
+    "min_age": 10,
+    "play_time_min": 40,
+    "play_time_max": 70,
+    "complexity_score": 2.47,
+    "categories": ["family", "animals"],
+    "mechanics": ["engine-building", "card-drafting"],
+    "moods": ["calm", "strategic"],
+    "why_play": [
+      "Спокойная стратегия с красивым оформлением",
+      "Подходит для смешанной по опыту компании"
+    ],
+    "avoid_if": ["Хочется активного конфликта", "Нужна очень короткая партия"]
+  },
+  {
+    "title": "Каскадия",
+    "bgg_id": 295947,
+    "min_players": 1,
+    "max_players": 4,
+    "min_age": 10,
+    "play_time_min": 30,
+    "play_time_max": 45,
+    "complexity_score": 1.85,
+    "categories": ["family", "puzzle"],
+    "mechanics": ["tile-placement", "pattern-building"],
+    "moods": ["calm", "family"],
+    "why_play": ["Легко объяснить новым игрокам", "Приятная головоломка без прямого конфликта"],
+    "avoid_if": ["Нужна игра с активным взаимодействием", "Компания хочет сложную стратегию"]
+  },
+  {
+    "title": "Экипаж: Миссия «Глубокое море»",
+    "bgg_id": 324856,
+    "min_players": 2,
+    "max_players": 5,
+    "min_age": 10,
+    "play_time_min": 20,
+    "play_time_max": 30,
+    "complexity_score": 2.04,
+    "categories": ["cooperative", "card-game"],
+    "mechanics": ["trick-taking", "cooperative"],
+    "moods": ["cooperative", "quick"],
+    "why_play": [
+      "Короткая кооперативная карточная игра",
+      "Серии миссий постепенно раскрывают правила"
+    ],
+    "avoid_if": ["Не нравится жанр взяток", "Нужна игра для шести и более игроков"]
+  },
+  {
+    "title": "Азул",
+    "bgg_id": 230802,
+    "min_players": 2,
+    "max_players": 4,
+    "min_age": 8,
+    "play_time_min": 30,
+    "play_time_max": 45,
+    "complexity_score": 1.77,
+    "categories": ["family", "abstract"],
+    "mechanics": ["tile-drafting", "pattern-building"],
+    "moods": ["calm", "competitive"],
+    "why_play": ["Простые правила и тактические решения", "Красивый и понятный игровой процесс"],
+    "avoid_if": ["Нужна кооперативная игра", "Не нравится абстрактная стратегия"]
+  },
+  {
+    "title": "7 чудес: Дуэль",
+    "bgg_id": 173346,
+    "min_players": 2,
+    "max_players": 2,
+    "min_age": 10,
+    "play_time_min": 30,
+    "play_time_max": 45,
+    "complexity_score": 2.23,
+    "categories": ["strategy", "civilization"],
+    "mechanics": ["card-drafting", "set-collection"],
+    "moods": ["strategic", "competitive"],
+    "why_play": ["Специально создана для двух игроков", "Есть несколько путей к победе"],
+    "avoid_if": ["Игроков больше двух", "Не хочется прямого соперничества"]
+  }
+]
