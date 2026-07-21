@@ -55,21 +55,47 @@ const nullableStringArray = z.preprocess(
   z.array(z.string().min(1)).nullable(),
 );
 
-const catalogGameSchema = z.object({
-  title: nullableString,
-  bgg_id: z.coerce.number().int().positive(),
-  min_players: nullableNumber.pipe(z.number().int().positive().nullable()),
-  max_players: nullableNumber.pipe(z.number().int().positive().nullable()),
-  min_age: nullableNumber.pipe(z.number().int().nonnegative().nullable()),
-  play_time_min: nullableNumber.pipe(z.number().int().positive().nullable()),
-  play_time_max: nullableNumber.pipe(z.number().int().positive().nullable()),
-  complexity_score: nullableNumber.pipe(z.number().min(1).max(5).nullable()),
-  categories: nullableStringArray,
-  mechanics: nullableStringArray,
-  moods: nullableStringArray,
-  why_play: nullableStringArray,
-  avoid_if: nullableStringArray,
-});
+const catalogGameSchema = z
+  .object({
+    title: nullableString,
+    bgg_id: z.coerce.number().int().positive(),
+    min_players: nullableNumber.pipe(z.number().int().positive().nullable()),
+    max_players: nullableNumber.pipe(z.number().int().positive().nullable()),
+    min_age: nullableNumber.pipe(z.number().int().nonnegative().nullable()),
+    play_time_min: nullableNumber.pipe(z.number().int().positive().nullable()),
+    play_time_max: nullableNumber.pipe(z.number().int().positive().nullable()),
+    complexity_score: nullableNumber.pipe(z.number().min(1).max(5).nullable()),
+    categories: nullableStringArray,
+    mechanics: nullableStringArray,
+    moods: nullableStringArray,
+    why_play: nullableStringArray,
+    avoid_if: nullableStringArray,
+  })
+  .superRefine((game, context) => {
+    if (
+      game.min_players !== null &&
+      game.max_players !== null &&
+      game.max_players < game.min_players
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'max_players must be greater than or equal to min_players',
+        path: ['max_players'],
+      });
+    }
+
+    if (
+      game.play_time_min !== null &&
+      game.play_time_max !== null &&
+      game.play_time_max < game.play_time_min
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'play_time_max must be greater than or equal to play_time_min',
+        path: ['play_time_max'],
+      });
+    }
+  });
 
 export type CatalogGame = z.infer<typeof catalogGameSchema>;
 
@@ -170,8 +196,17 @@ export async function importCatalog(
         continue;
       }
 
-      await repository.insert({ ...changes, bgg_id: game.bgg_id });
-      summary.added += 1;
+      try {
+        await repository.insert({ ...changes, bgg_id: game.bgg_id });
+        summary.added += 1;
+      } catch (error) {
+        if (!isDuplicateBggId(error)) {
+          throw error;
+        }
+
+        await repository.update(game.bgg_id, changes);
+        summary.updated += 1;
+      }
     } catch (error) {
       summary.errors += 1;
       logger.error(`BGG ID ${game.bgg_id}: ${errorMessage(error)}`);
@@ -290,6 +325,10 @@ function parseCsvRows(content: string): string[][] {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isDuplicateBggId(error: unknown): boolean {
+  return errorMessage(error).includes('duplicate key');
 }
 
 async function main(): Promise<void> {

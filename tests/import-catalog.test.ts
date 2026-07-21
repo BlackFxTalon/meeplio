@@ -111,6 +111,81 @@ describe('catalog importer', () => {
       'BGG ID 999999: missing required fields: min_players, max_players, min_age, play_time_min, play_time_max, complexity_score',
     );
   });
+
+  it('rejects contradictory player and duration ranges before writing', async () => {
+    const logger = createLogger();
+    const result = await importCatalog(
+      [
+        {
+          title: 'Противоречивая игра',
+          bgg_id: 999998,
+          min_players: 5,
+          max_players: 2,
+          min_age: 10,
+          play_time_min: 90,
+          play_time_max: 30,
+          complexity_score: 2,
+        },
+      ],
+      {
+        findByBggId: async () => false,
+        insert: async () => {
+          throw new Error('insert should not be called');
+        },
+        update: async () => {
+          throw new Error('update should not be called');
+        },
+      },
+      logger,
+    );
+
+    expect(result).toEqual({ added: 0, updated: 0, errors: 1 });
+    expect(logger.errors).toHaveLength(1);
+  });
+
+  it('retries as an update when a concurrent insert creates the same BGG ID', async () => {
+    const updates: CatalogDatabaseRecord[] = [];
+    const logger = createLogger();
+    const result = await importCatalog(
+      [
+        {
+          title: 'Конкурентная игра',
+          bgg_id: 999997,
+          min_players: 2,
+          max_players: 4,
+          min_age: 10,
+          play_time_min: 30,
+          play_time_max: 60,
+          complexity_score: 2,
+        },
+      ],
+      {
+        findByBggId: async () => false,
+        insert: async () => {
+          throw new Error(
+            'duplicate key value violates unique constraint "board_games_bgg_id_key"',
+          );
+        },
+        update: async (_bggId, changes) => {
+          updates.push(changes);
+        },
+      },
+      logger,
+    );
+
+    expect(result).toEqual({ added: 0, updated: 1, errors: 0 });
+    expect(updates).toEqual([
+      {
+        title: 'Конкурентная игра',
+        min_players: 2,
+        max_players: 4,
+        min_age: 10,
+        play_time_min: 30,
+        play_time_max: 60,
+        complexity_score: 2,
+      },
+    ]);
+  });
 });
 
 function createLogger(): ImportLogger & { errors: string[] } {
