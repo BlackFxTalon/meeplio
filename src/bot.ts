@@ -82,7 +82,9 @@ export function createBot(
         value,
       );
       if (result.kind === 'complete') {
-        await context.reply('Спасибо! Подбор игр появится в следующем сообщении.');
+        await context.reply(
+          'Опрос завершён. Ваши ответы сохранены — рекомендации появятся после подключения алгоритма подбора.',
+        );
       } else if (result.kind === 'recovery') {
         await replyWithSurveyStart(context, result);
       } else if (result.kind === 'duplicate') {
