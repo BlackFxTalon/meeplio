@@ -22,7 +22,22 @@ create table board_games (
 create table recommendation_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id bigint not null,
-  answers jsonb not null default '{}'::jsonb check (jsonb_typeof(answers) = 'object'),
+  answers jsonb not null default '{}'::jsonb check (
+    jsonb_typeof(answers) = 'object'
+    and (
+      status = 'draft'
+      or answers ?& array[
+        'mood',
+        'complexity_pref',
+        'player_count',
+        'time_limit',
+        'interaction_type',
+        'experience',
+        'age_group',
+        'conflict'
+      ]
+    )
+  ),
   status text not null default 'draft' check (status in ('draft', 'complete')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

@@ -46,5 +46,18 @@ describe('migrate_001_schema.sql', () => {
         'board_games_mechanic_ids_gin_idx',
       ]),
     );
+
+    await expect(
+      database.exec("insert into recommendation_sessions (user_id, status) values (1, 'complete')"),
+    ).rejects.toThrow();
+
+    await database.exec(`
+      insert into recommendation_sessions (user_id, status, answers)
+      values (
+        1,
+        'complete',
+        '{"mood":"calm","complexity_pref":"easy","player_count":2,"time_limit":60,"interaction_type":"cooperative","experience":"novice","age_group":"adult","conflict":"low"}'::jsonb
+      )
+    `);
   });
 });
