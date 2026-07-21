@@ -53,8 +53,8 @@ Meeplio — русскоязычный Telegram-бот, который помо�
 ```bash
 npm install
 cp .env.example .env
-# Укажите BOT_TOKEN в .env или в переменных окружения shell
-BOT_TOKEN=<token> npm run dev
+# Укажите BOT_TOKEN, SUPABASE_URL и SUPABASE_KEY в переменных окружения shell
+BOT_TOKEN=<token> SUPABASE_URL=<url> SUPABASE_KEY=<key> npm run dev
 ```
 
 | Команда          | Назначение                                                                                                                                                     |

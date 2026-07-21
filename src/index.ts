@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
-import { createBot } from './bot.js';
+import { createApplication } from './application.js';
 
 const environmentSchema = z.object({
   BOT_TOKEN: z.string().min(1, 'BOT_TOKEN must be set'),
+  SUPABASE_URL: z.url('SUPABASE_URL must be a valid URL'),
+  SUPABASE_KEY: z.string().min(1, 'SUPABASE_KEY must be set'),
 });
 
 const environment = environmentSchema.parse(process.env);
-const bot = createBot(environment.BOT_TOKEN);
+const application = createApplication(environment);
 
-void bot.start({
+void application.bot.start({
   allowed_updates: ['message'],
 });
