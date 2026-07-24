@@ -1,5 +1,7 @@
 import { Bot, InlineKeyboard, type BotConfig, type BotError, type Context } from 'grammy';
 
+import type { FeedbackService } from './feedback/service.js';
+import type { RecommendationService } from './recommendations/service.js';
 import type { SurveyQuestion, SurveyService, SurveyStartResult } from './survey/service.js';
 
 const HEALTH_MESSAGE = 'Meeplio is ready';
@@ -9,6 +11,8 @@ const HELP_MESSAGE =
   'Доступные команды:\n/start — начать заново\n/pick — подобрать игру\n/stop — остановить подбор\n/settings — настройки';
 
 export interface BotDependencies {
+  feedbackService?: FeedbackService;
+  recommendationService?: RecommendationService;
   surveyService?: SurveyService;
 }
 
@@ -38,18 +42,39 @@ export function createBot(
 
   bot.on('callback_query:data', async (context) => {
     const service = dependencies.surveyService;
-    if (!service || !context.from) {
+    if (!context.from) {
       return;
     }
 
-    if (context.callbackQuery.data === 'pick:start') {
+    if (context.callbackQuery.data === 'pick:start' && service) {
       await context.answerCallbackQuery();
       await replyWithSurveyStart(context, await service.start(context.from.id));
       return;
     }
 
     const [namespace, action, sessionId, key, value] = context.callbackQuery.data.split(':');
-    if (namespace !== 'survey' || !sessionId) {
+    const feedbackService = dependencies.feedbackService;
+    if (
+      namespace === 'feedback' &&
+      action === 'rate' &&
+      sessionId &&
+      key &&
+      value &&
+      feedbackService
+    ) {
+      await context.answerCallbackQuery();
+      const feedbackType = await feedbackService.record({
+        userId: context.from.id,
+        sessionId,
+        gameId: key,
+        rating: Number(value),
+      });
+      await context.reply(
+        feedbackType === 'dislike' ? 'Учту: эту игру больше не предложу.' : 'Спасибо за оценку!',
+      );
+      return;
+    }
+    if (!service || namespace !== 'survey' || !sessionId) {
       return;
     }
 
@@ -82,9 +107,27 @@ export function createBot(
         value,
       );
       if (result.kind === 'complete') {
-        await context.reply(
-          'Опрос завершён. Ваши ответы сохранены — рекомендации появятся после подключения алгоритма подбора.',
+        const recommendationService = dependencies.recommendationService;
+        if (!recommendationService) {
+          await context.reply('Опрос завершён. Ваши ответы сохранены.');
+          return;
+        }
+        const recommendations = await recommendationService.forSession(
+          result.session.id,
+          context.from.id,
         );
+        if (recommendations.length === 0) {
+          await context.reply('Подходящих игр не нашлось. Попробуйте изменить ответы.');
+          return;
+        }
+        for (const recommendation of recommendations) {
+          await context.reply(
+            `${recommendation.game.title} — совпадение ${recommendation.score}/100`,
+            {
+              reply_markup: feedbackKeyboard(result.session.id, recommendation.game.id),
+            },
+          );
+        }
       } else if (result.kind === 'recovery') {
         await replyWithSurveyStart(context, result);
       } else if (result.kind === 'duplicate') {
@@ -150,4 +193,16 @@ async function replyWithQuestion(
   }
 
   await context.reply(question.prompt, { reply_markup: keyboard });
+}
+
+export function feedbackKeyboard(sessionId: string, gameId: string): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('Подходит 👍', `feedback:rate:${sessionId}:${gameId}:5`)
+    .text('Не подходит 👎', `feedback:rate:${sessionId}:${gameId}:1`)
+    .row()
+    .text('Оценить ⭐', `feedback:rate:${sessionId}:${gameId}:1`)
+    .text('⭐⭐', `feedback:rate:${sessionId}:${gameId}:2`)
+    .text('⭐⭐⭐', `feedback:rate:${sessionId}:${gameId}:3`)
+    .text('⭐⭐⭐⭐', `feedback:rate:${sessionId}:${gameId}:4`)
+    .text('⭐⭐⭐⭐⭐', `feedback:rate:${sessionId}:${gameId}:5`);
 }

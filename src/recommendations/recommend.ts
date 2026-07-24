@@ -29,6 +29,10 @@ export interface Recommendation {
   diversityFallback?: string;
 }
 
+export interface RecommendationOptions {
+  dislikedGameIds?: Iterable<string>;
+}
+
 const AGE_GROUP_ASSUMED_AGE: Record<string, number> = {
   under_8: 5,
   '8_12': 8,
@@ -60,10 +64,16 @@ const COMPLEXITY_RANGE: Record<string, readonly [number, number]> = {
 const EXPERIENCE_MAX: Record<string, number> = { novice: 2, casual: 3, regular: 4, expert: 5 };
 const HIGH_CONFLICT_TAGS = new Set(['competitive']);
 
-export function recommend(answers: Answers, games: Game[]): Recommendation[] {
+export function recommend(
+  answers: Answers,
+  games: Game[],
+  options: RecommendationOptions = {},
+): Recommendation[] {
   const playerCount = answers.player_count === '6+' ? 6 : Number(answers.player_count);
   const ageMinimum = AGE_GROUP_ASSUMED_AGE[answers.age_group] ?? 18;
+  const dislikedGameIds = new Set(options.dislikedGameIds);
   const ranked = games
+    .filter((game) => !dislikedGameIds.has(game.id))
     .filter((game) => game.minPlayers <= playerCount && playerCount <= game.maxPlayers)
     .filter((game) => game.minAge <= ageMinimum)
     .map((game) => ({ game, score: score(game, answers, playerCount) }))

@@ -97,6 +97,16 @@ describe('recommend', () => {
     expect(cooperative[0]?.game.id).toBe('cooperative');
     expect(highConflict[0]?.game.id).toBe('competitive');
   });
+
+  it('never returns a game the user has disliked', () => {
+    const results = recommend(
+      answers,
+      [game({ id: 'disliked' }), game({ id: 'allowed', title: 'Z allowed' })],
+      { dislikedGameIds: ['disliked'] },
+    );
+
+    expect(results.map((result) => result.game.id)).toEqual(['allowed']);
+  });
 });
 
 function game(overrides: Partial<Game> = {}): Game {
