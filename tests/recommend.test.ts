@@ -107,6 +107,19 @@ describe('recommend', () => {
 
     expect(results.map((result) => result.game.id)).toEqual(['allowed']);
   });
+
+  it('applies the permanent fifty-percent feedback penalty before ranking', () => {
+    const results = recommend(
+      answers,
+      [game({ id: 'penalized', maxPlayers: 2 }), game({ id: 'normal', maxPlayers: 4 })],
+      { penaltyGameIds: ['penalized'] },
+    );
+
+    expect(results).toMatchObject([
+      { game: { id: 'normal' }, score: 90 },
+      { game: { id: 'penalized' }, score: 50 },
+    ]);
+  });
 });
 
 function game(overrides: Partial<Game> = {}): Game {

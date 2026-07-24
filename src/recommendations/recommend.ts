@@ -31,6 +31,7 @@ export interface Recommendation {
 
 export interface RecommendationOptions {
   dislikedGameIds?: Iterable<string>;
+  penaltyGameIds?: Iterable<string>;
 }
 
 const AGE_GROUP_ASSUMED_AGE: Record<string, number> = {
@@ -72,11 +73,17 @@ export function recommend(
   const playerCount = answers.player_count === '6+' ? 6 : Number(answers.player_count);
   const ageMinimum = AGE_GROUP_ASSUMED_AGE[answers.age_group] ?? 18;
   const dislikedGameIds = new Set(options.dislikedGameIds);
+  const penaltyGameIds = new Set(options.penaltyGameIds);
   const ranked = games
     .filter((game) => !dislikedGameIds.has(game.id))
     .filter((game) => game.minPlayers <= playerCount && playerCount <= game.maxPlayers)
     .filter((game) => game.minAge <= ageMinimum)
-    .map((game) => ({ game, score: score(game, answers, playerCount) }))
+    .map((game) => ({
+      game,
+      score: Math.round(
+        score(game, answers, playerCount) * (penaltyGameIds.has(game.id) ? 0.5 : 1),
+      ),
+    }))
     .sort(
       (left, right) => right.score - left.score || left.game.title.localeCompare(right.game.title),
     );
