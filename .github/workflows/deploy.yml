@@ -15,39 +15,54 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+      DEPLOY_SSH_FINGERPRINT: ${{ secrets.DEPLOY_SSH_FINGERPRINT }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_REPO_SSH_KEY: ${{ secrets.DEPLOY_REPO_SSH_KEY }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
     steps:
-      - name: Deploy Meeplio over SSH
-        uses: appleboy/ssh-action@v1.2.4
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
-          DEPLOY_REPO_SSH_KEY: ${{ secrets.DEPLOY_REPO_SSH_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          fingerprint: ${{ secrets.DEPLOY_SSH_FINGERPRINT }}
-          port: 22
-          envs: BOT_TOKEN,DEPLOY_SHA,DEPLOY_REPO_SSH_KEY,SUPABASE_URL,SUPABASE_KEY
-          script: |
-            set -eu
-            install -d -m 0700 /root/.ssh
-            printf '%s\n' "$DEPLOY_REPO_SSH_KEY" > /root/.ssh/meeplio_deploy_key
-            chmod 0600 /root/.ssh/meeplio_deploy_key
-            printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnk2qYXBuehPQCQ6h4ocQYf1bE5Y9H1M4bRZJf1z' >> /root/.ssh/known_hosts
-            install -d -m 0755 /opt/meeplio
-            if [ ! -d /opt/meeplio/.git ]; then
-              GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
-                git clone git@github.com:BlackFxTalon/meeplio.git /opt/meeplio
-            fi
-            cd /opt/meeplio
+      - name: Verify host identity and deploy Meeplio
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh_dir="$RUNNER_TEMP/meeplio-ssh"
+          install -d -m 0700 "$ssh_dir"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/deploy_key"
+          chmod 0600 "$ssh_dir/deploy_key"
+          ssh-keyscan -T 10 -t ed25519 "$DEPLOY_HOST" > "$ssh_dir/known_hosts"
+          observed_fingerprint=$(ssh-keygen -lf "$ssh_dir/known_hosts" -E sha256 | awk '{print $2}')
+          test "$observed_fingerprint" = "$DEPLOY_SSH_FINGERPRINT"
+          ssh_options=(
+            -i "$ssh_dir/deploy_key"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$ssh_dir/known_hosts"
+          )
+          ssh "${ssh_options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_SHA='$DEPLOY_SHA' BOT_TOKEN='$BOT_TOKEN' SUPABASE_URL='$SUPABASE_URL' SUPABASE_KEY='$SUPABASE_KEY' DEPLOY_REPO_SSH_KEY='$DEPLOY_REPO_SSH_KEY' bash -se" <<'REMOTE'
+          set -euo pipefail
+          install -d -m 0700 /root/.ssh
+          printf '%s\n' "$DEPLOY_REPO_SSH_KEY" > /root/.ssh/meeplio_deploy_key
+          chmod 0600 /root/.ssh/meeplio_deploy_key
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnk2qYXBuehPQCQ6h4ocQYf1bE5Y9H1M4bRZJf1z' >> /root/.ssh/known_hosts
+          install -d -m 0755 /opt/meeplio
+          if [ ! -d /opt/meeplio/.git ]; then
             GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
-              git fetch origin "$DEPLOY_SHA"
-            git checkout --detach "$DEPLOY_SHA"
-            npm ci
-            npm run build
-            command -v pm2 >/dev/null 2>&1 || npm install --global pm2
-            pm2 reload meeplio --update-env || pm2 start dist/index.js --name meeplio --update-env
-            pm2 save
+              git clone git@github.com:BlackFxTalon/meeplio.git /opt/meeplio
+          fi
+          cd /opt/meeplio
+          GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
+            git fetch origin "$DEPLOY_SHA"
+          git checkout --detach "$DEPLOY_SHA"
+          npm ci
+          npm run build
+          command -v pm2 >/dev/null 2>&1 || npm install --global pm2
+          pm2 reload meeplio --update-env || pm2 start dist/index.js --name meeplio --update-env
+          pm2 save
+          REMOTE
