@@ -9,7 +9,7 @@ describe('feedback callbacks', () => {
     const bot = createBot(
       'test-token',
       { botInfo },
-      { feedbackService: new FeedbackService(repository) },
+      { feedbackService: new FeedbackService(repository, completedSession) },
     );
     const replies: string[] = [];
     bot.api.config.use(async (_previous, method, payload) => {
@@ -54,6 +54,16 @@ class InMemoryFeedbackRepository implements FeedbackRepository {
     this.touched.push(sessionId);
   }
 }
+
+const completedSession = {
+  async findById() {
+    return {
+      userId: 1,
+      status: 'complete' as const,
+      answers: { recommended_game_ids: ['game-1'] },
+    };
+  },
+};
 
 const botInfo = {
   id: 1,

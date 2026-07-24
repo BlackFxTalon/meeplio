@@ -23,7 +23,10 @@ export interface Application {
 export function createApplication(environment: ApplicationEnvironment): Application {
   const supabase = createClient(environment.SUPABASE_URL, environment.SUPABASE_KEY);
   const surveyRepository = new SupabaseSurveySessionRepository(supabase);
-  const feedbackService = new FeedbackService(new SupabaseFeedbackRepository(supabase));
+  const feedbackService = new FeedbackService(
+    new SupabaseFeedbackRepository(supabase),
+    surveyRepository,
+  );
 
   return {
     bot: createBot(environment.BOT_TOKEN, undefined, {

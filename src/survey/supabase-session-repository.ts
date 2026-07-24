@@ -101,6 +101,22 @@ export class SupabaseSurveySessionRepository implements SurveySessionRepository 
     );
   }
 
+  async saveRecommendedGameIds(sessionId: string, gameIds: string[]): Promise<SurveySession> {
+    const session = await this.findById(sessionId);
+    if (!session) {
+      throw new Error('Survey session was not found.');
+    }
+
+    return this.write(
+      this.supabase
+        .from('recommendation_sessions')
+        .update({ answers: { ...session.answers, recommended_game_ids: gameIds } })
+        .eq('id', sessionId)
+        .select('id, user_id, answers, status, updated_at')
+        .single(),
+    );
+  }
+
   private async write(
     query: PromiseLike<{ data: unknown; error: unknown }>,
   ): Promise<SurveySession> {
