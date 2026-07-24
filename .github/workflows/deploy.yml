@@ -36,6 +36,7 @@ jobs:
           chmod 0600 "$ssh_dir/deploy_key"
           ssh-keyscan -T 10 -t ed25519 "$DEPLOY_HOST" > "$ssh_dir/known_hosts"
           observed_fingerprint=$(ssh-keygen -lf "$ssh_dir/known_hosts" -E sha256 | awk '{print $2}')
+          printf 'Observed host fingerprint: %s\n' "$observed_fingerprint"
           test "$observed_fingerprint" = "$DEPLOY_SSH_FINGERPRINT"
           ssh_options=(
             -i "$ssh_dir/deploy_key"
