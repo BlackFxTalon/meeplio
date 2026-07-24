@@ -36,7 +36,6 @@ jobs:
           chmod 0600 "$ssh_dir/deploy_key"
           ssh-keyscan -T 10 -t ed25519 "$DEPLOY_HOST" > "$ssh_dir/known_hosts"
           observed_fingerprint=$(ssh-keygen -lf "$ssh_dir/known_hosts" -E sha256 | awk '{print $2}')
-          printf 'Observed host fingerprint: %s\n' "$observed_fingerprint"
           test "$observed_fingerprint" = "$DEPLOY_SSH_FINGERPRINT"
           ssh_options=(
             -i "$ssh_dir/deploy_key"
@@ -51,7 +50,8 @@ jobs:
           install -d -m 0700 /root/.ssh
           printf '%s\n' "$DEPLOY_REPO_SSH_KEY" > /root/.ssh/meeplio_deploy_key
           chmod 0600 /root/.ssh/meeplio_deploy_key
-          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnk2qYXBuehPQCQ6h4ocQYf1bE5Y9H1M4bRZJf1z' >> /root/.ssh/known_hosts
+          ssh-keygen -q -f /root/.ssh/known_hosts -R github.com || true
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' >> /root/.ssh/known_hosts
           install -d -m 0755 /opt/meeplio
           if [ ! -d /opt/meeplio/.git ]; then
             GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
