@@ -27,7 +27,7 @@ describe('recommend', () => {
   it('ranks an exact preference match ahead of a near match', () => {
     const results = recommend(answers, [
       game({ id: 'near', moodTags: ['social'], complexityScore: 3.5, playTimeMax: 60 }),
-      game({ id: 'exact', moodTags: ['strategy'], complexityScore: 3, playTimeMax: 60 }),
+      game({ id: 'exact', moodTags: ['strategic'], complexityScore: 3, playTimeMax: 60 }),
     ]);
 
     expect(results.map((result) => result.game.id)).toEqual(['exact', 'near']);
@@ -77,7 +77,7 @@ function game(overrides: Partial<Game> = {}): Game {
     complexityScore: 3,
     categoryIds: ['strategy'],
     mechanicIds: ['competitive'],
-    moodTags: ['strategy'],
+    moodTags: ['strategic'],
     ...overrides,
   };
 }

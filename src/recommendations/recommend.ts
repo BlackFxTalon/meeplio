@@ -29,7 +29,20 @@ export interface Recommendation {
   diversityFallback?: string;
 }
 
-const AGE_MINIMUM: Record<string, number> = { under_8: 5, '8_12': 8, teen: 13, adult: 18 };
+const AGE_GROUP_ASSUMED_AGE: Record<string, number> = {
+  under_8: 5,
+  '8_12': 8,
+  teen: 13,
+  adult: 18,
+};
+const MOOD_TAGS: Record<string, string[]> = {
+  social: ['social', 'competitive'],
+  family: ['family', 'calm'],
+  strategy: ['strategic'],
+  adventure: ['adventure'],
+  puzzle: ['puzzle', 'calm'],
+  competitive: ['competitive', 'quick'],
+};
 const TIME_LIMIT: Record<string, number> = {
   '20': 20,
   '40': 40,
@@ -45,11 +58,11 @@ const COMPLEXITY_RANGE: Record<string, readonly [number, number]> = {
   any: [1, 5],
 };
 const EXPERIENCE_MAX: Record<string, number> = { novice: 2, casual: 3, regular: 4, expert: 5 };
-const HIGH_CONFLICT_MECHANICS = new Set(['take-that', 'area-control', 'aggressive']);
+const HIGH_CONFLICT_TAGS = new Set(['competitive']);
 
 export function recommend(answers: Answers, games: Game[]): Recommendation[] {
   const playerCount = answers.player_count === '6+' ? 6 : Number(answers.player_count);
-  const ageMinimum = AGE_MINIMUM[answers.age_group] ?? 18;
+  const ageMinimum = AGE_GROUP_ASSUMED_AGE[answers.age_group] ?? 18;
   const ranked = games
     .filter((game) => game.minPlayers <= playerCount && playerCount <= game.maxPlayers)
     .filter((game) => game.minAge <= ageMinimum)
@@ -65,18 +78,20 @@ function score(game: Game, answers: Answers, playerCount: number): number {
   const [complexityMin, complexityMax] = COMPLEXITY_RANGE[answers.complexity_pref] ?? [1, 5];
   const timeLimit = TIME_LIMIT[answers.time_limit] ?? Infinity;
   const experienceMax = EXPERIENCE_MAX[answers.experience] ?? 5;
-  const hasHighConflict = game.mechanicIds.some((mechanic) =>
-    HIGH_CONFLICT_MECHANICS.has(mechanic),
-  );
+  const moodTags = MOOD_TAGS[answers.mood] ?? [answers.mood];
+  const interactionMatches =
+    answers.interaction_type === 'any' ||
+    game.mechanicIds.includes(answers.interaction_type) ||
+    game.moodTags.includes(answers.interaction_type) ||
+    (answers.interaction_type === 'team' && game.moodTags.includes('cooperative'));
+  const hasHighConflict = game.moodTags.some((tag) => HIGH_CONFLICT_TAGS.has(tag));
 
   const total =
-    (game.moodTags.includes(answers.mood) ? 25 : 0) +
+    (game.moodTags.some((tag) => moodTags.includes(tag)) ? 25 : 0) +
     (game.complexityScore >= complexityMin && game.complexityScore <= complexityMax ? 15 : 0) +
     15 +
     (game.playTimeMax <= timeLimit ? 10 : game.playTimeMin <= timeLimit ? 5 : 0) +
-    (answers.interaction_type === 'any' || game.mechanicIds.includes(answers.interaction_type)
-      ? 10
-      : 0) +
+    (interactionMatches ? 10 : 0) +
     (game.complexityScore <= experienceMax ? 5 : 0) +
     5 +
     (conflictMatches(answers.conflict, hasHighConflict) ? 5 : 0) +
