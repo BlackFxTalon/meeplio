@@ -82,3 +82,24 @@ BOT_TOKEN=<token> SUPABASE_URL=<url> SUPABASE_KEY=<key> npm run dev
 ## Подробное описание
 
 Полные продуктовые и технические требования находятся в [IDEA.md](IDEA.md).
+
+## CI/CD и деплой
+
+`CI` запускает lint, тесты и build для каждого pull request и при push в `main`.
+После успешного CI для push в `main` workflow `Deploy` подключается к VPS по SSH,
+обновляет `/opt/meeplio`, устанавливает зависимости, собирает проект и перезапускает
+PM2-процесс `meeplio`.
+
+Перед первым деплоем создайте GitHub Actions secrets (значения не хранятся в репозитории):
+
+- `DEPLOY_SSH_KEY` — приватный SSH-ключ с доступом пользователя `root` к VPS;
+- `DEPLOY_SSH_FINGERPRINT` — SHA256 fingerprint SSH host key VPS;
+- `DEPLOY_REPO_SSH_KEY` — private half read-only GitHub deploy key для клонирования репозитория;
+- `DEPLOY_HOST` — `89.223.66.116`;
+- `DEPLOY_USER` — `root`;
+- `BOT_TOKEN` — токен Telegram-бота;
+- `SUPABASE_URL`;
+- `SUPABASE_SERVICE_KEY` — service key, передаваемый приложению как `SUPABASE_KEY`.
+
+На VPS должны быть установлены Node.js 22+, npm, Git и PM2. Репозиторий должен быть
+доступен серверу по HTTPS для первоначального `git clone`.

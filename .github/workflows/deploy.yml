@@ -1,0 +1,52 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Meeplio over SSH
+        uses: appleboy/ssh-action@v1.2.4
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_REPO_SSH_KEY: ${{ secrets.DEPLOY_REPO_SSH_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          fingerprint: ${{ secrets.DEPLOY_SSH_FINGERPRINT }}
+          port: 22
+          envs: BOT_TOKEN,DEPLOY_SHA,DEPLOY_REPO_SSH_KEY,SUPABASE_URL,SUPABASE_KEY
+          script: |
+            set -eu
+            install -d -m 0700 /root/.ssh
+            printf '%s\n' "$DEPLOY_REPO_SSH_KEY" > /root/.ssh/meeplio_deploy_key
+            chmod 0600 /root/.ssh/meeplio_deploy_key
+            printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnk2qYXBuehPQCQ6h4ocQYf1bE5Y9H1M4bRZJf1z' >> /root/.ssh/known_hosts
+            install -d -m 0755 /opt/meeplio
+            if [ ! -d /opt/meeplio/.git ]; then
+              GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
+                git clone git@github.com:BlackFxTalon/meeplio.git /opt/meeplio
+            fi
+            cd /opt/meeplio
+            GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
+              git fetch origin "$DEPLOY_SHA"
+            git checkout --detach "$DEPLOY_SHA"
+            npm ci
+            npm run build
+            pm2 reload meeplio --update-env || pm2 start dist/index.js --name meeplio --update-env
+            pm2 save
