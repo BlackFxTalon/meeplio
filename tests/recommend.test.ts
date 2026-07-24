@@ -63,6 +63,40 @@ describe('recommend', () => {
     expect(results).toHaveLength(3);
     expect(results.every((result) => result.diversityFallback !== undefined)).toBe(true);
   });
+
+  it('treats 6+ and a child age group as hard filters', () => {
+    const results = recommend(
+      { ...answers, player_count: '6+', age_group: 'under_8', interaction_type: 'any' },
+      [
+        game({ id: 'child-six', minPlayers: 2, maxPlayers: 6, minAge: 5 }),
+        game({ id: 'only-five', minPlayers: 2, maxPlayers: 5, minAge: 5 }),
+        game({ id: 'too-old', minPlayers: 2, maxPlayers: 6, minAge: 8 }),
+      ],
+    );
+
+    expect(results.map((result) => result.game.id)).toEqual(['child-six']);
+  });
+
+  it('rewards cooperative interaction and high-conflict preference from catalog tags', () => {
+    const cooperative = recommend(
+      { ...answers, mood: 'adventure', interaction_type: 'cooperative', conflict: 'none' },
+      [
+        game({
+          id: 'cooperative',
+          moodTags: ['adventure', 'cooperative'],
+          mechanicIds: ['cooperative'],
+        }),
+        game({ id: 'competitive', moodTags: ['adventure', 'competitive'], mechanicIds: [] }),
+      ],
+    );
+    const highConflict = recommend({ ...answers, conflict: 'high', interaction_type: 'any' }, [
+      game({ id: 'calm', moodTags: ['strategic'], mechanicIds: [] }),
+      game({ id: 'competitive', moodTags: ['strategic', 'competitive'], mechanicIds: [] }),
+    ]);
+
+    expect(cooperative[0]?.game.id).toBe('cooperative');
+    expect(highConflict[0]?.game.id).toBe('competitive');
+  });
 });
 
 function game(overrides: Partial<Game> = {}): Game {
