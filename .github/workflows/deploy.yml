@@ -48,5 +48,6 @@ jobs:
             git checkout --detach "$DEPLOY_SHA"
             npm ci
             npm run build
+            command -v pm2 >/dev/null 2>&1 || npm install --global pm2
             pm2 reload meeplio --update-env || pm2 start dist/index.js --name meeplio --update-env
             pm2 save
