@@ -2,7 +2,12 @@ import { Bot, InlineKeyboard, type BotConfig, type BotError, type Context } from
 
 import type { FeedbackService } from './feedback/service.js';
 import type { RecommendationService } from './recommendations/service.js';
-import type { SurveyQuestion, SurveyService, SurveyStartResult } from './survey/service.js';
+import {
+  surveyQuestions,
+  type SurveyQuestion,
+  type SurveyService,
+  type SurveyStartResult,
+} from './survey/service.js';
 
 const HEALTH_MESSAGE = 'Meeplio is ready';
 const START_MESSAGE =
@@ -25,7 +30,7 @@ export function createBot(
 
   bot.command('start', (context) =>
     context.reply(START_MESSAGE, {
-      reply_markup: new InlineKeyboard().text('Подобрать', 'pick:start'),
+      reply_markup: new InlineKeyboard().text('Подобрать', 's:p'),
     }),
   );
   bot.command('help', (context) => context.reply(HELP_MESSAGE));
@@ -46,66 +51,63 @@ export function createBot(
       return;
     }
 
-    if (context.callbackQuery.data === 'pick:start' && service) {
+    const [namespace, action, encodedSessionId, questionIndex, optionIndex] =
+      context.callbackQuery.data.split(':');
+    const sessionId = encodedSessionId ? decodeCallbackId(encodedSessionId) : undefined;
+
+    if (namespace === 's' && action === 'p' && service) {
       await context.answerCallbackQuery();
       await replyWithSurveyStart(context, await service.start(context.from.id));
       return;
     }
 
-    const [namespace, action, sessionId, key, value] = context.callbackQuery.data.split(':');
     const feedbackService = dependencies.feedbackService;
-    if (
-      namespace === 'feedback' &&
-      action === 'rate' &&
-      sessionId &&
-      key &&
-      value &&
-      feedbackService
-    ) {
+    if (namespace === 'f' && action && encodedSessionId && questionIndex && feedbackService) {
+      const feedbackSessionId = decodeCallbackId(action);
+      const gameId = decodeCallbackId(encodedSessionId);
+      if (!feedbackSessionId || !gameId) {
+        return;
+      }
       await context.answerCallbackQuery();
       const feedbackType = await feedbackService.record({
         userId: context.from.id,
-        sessionId,
-        gameId: key,
-        rating: Number(value),
+        sessionId: feedbackSessionId,
+        gameId,
+        rating: Number(questionIndex),
       });
       await context.reply(
         feedbackType === 'dislike' ? 'Учту: эту игру больше не предложу.' : 'Спасибо за оценку!',
       );
       return;
     }
-    if (!service || namespace !== 'survey' || !sessionId) {
+
+    if (!service || namespace !== 's' || !sessionId) {
       return;
     }
 
     await context.answerCallbackQuery();
-    if (action === 'resume') {
+    if (action === 'r') {
       await replyWithSurveyStart(context, await service.resume(sessionId, context.from.id));
       return;
     }
-    if (action === 'restart') {
+    if (action === 'x') {
       await replyWithSurveyStart(context, await service.restart(sessionId, context.from.id));
       return;
     }
-    if (action === 'revise' && key && value) {
-      await replyWithSurveyStart(
-        context,
-        await service.reviseAnswer(
-          sessionId,
-          context.from.id,
-          key as Parameters<SurveyService['reviseAnswer']>[2],
-          value,
-        ),
-      );
-      return;
-    }
-    if (action === 'answer' && key && value) {
-      const result = await service.answer(
-        sessionId,
-        context.from.id,
-        key as Parameters<SurveyService['answer']>[2],
-        value,
-      );
+    if ((action === 'v' || action === 'a') && questionIndex && optionIndex) {
+      const question = surveyQuestions[Number(questionIndex)];
+      const value = question?.options[Number(optionIndex)]?.[0];
+      if (!question || !value) {
+        return;
+      }
+      if (action === 'v') {
+        await replyWithSurveyStart(
+          context,
+          await service.reviseAnswer(sessionId, context.from.id, question.key, value),
+        );
+        return;
+      }
+      const result = await service.answer(sessionId, context.from.id, question.key, value);
       if (result.kind === 'complete') {
         const recommendationService = dependencies.recommendationService;
         if (!recommendationService) {
@@ -123,9 +125,7 @@ export function createBot(
         for (const recommendation of recommendations) {
           await context.reply(
             `${recommendation.game.title} — совпадение ${recommendation.score}/100`,
-            {
-              reply_markup: feedbackKeyboard(result.session.id, recommendation.game.id),
-            },
+            { reply_markup: feedbackKeyboard(result.session.id, recommendation.game.id) },
           );
         }
       } else if (result.kind === 'recovery') {
@@ -138,8 +138,11 @@ export function createBot(
             'Стратегия часто раскрывается лучше за час или дольше. Увеличить время или оставить быстрый формат?',
             {
               reply_markup: new InlineKeyboard()
-                .text('Увеличить до 60 минут', `survey:revise:${result.session.id}:time_limit:60`)
-                .text('Оставить быстрый формат', `survey:resume:${result.session.id}`),
+                .text(
+                  'Увеличить до 60 минут',
+                  surveyAnswerData('v', result.session.id, 'time_limit', '60'),
+                )
+                .text('Оставить быстрый формат', surveySessionData('r', result.session.id)),
             },
           );
           return;
@@ -170,8 +173,8 @@ async function replyWithSurveyStart(context: Context, result: SurveyStartResult)
   if (result.kind === 'recovery') {
     await context.reply('Вы начали подбор больше часа назад. Продолжить или начать заново?', {
       reply_markup: new InlineKeyboard()
-        .text('Продолжить', `survey:resume:${result.session.id}`)
-        .text('Начать заново', `survey:restart:${result.session.id}`),
+        .text('Продолжить', surveySessionData('r', result.session.id))
+        .text('Начать заново', surveySessionData('x', result.session.id)),
     });
     return;
   }
@@ -186,7 +189,7 @@ async function replyWithQuestion(
 ): Promise<void> {
   const keyboard = new InlineKeyboard();
   for (const [index, [value, label]] of question.options.entries()) {
-    keyboard.text(label, `survey:answer:${sessionId}:${question.key}:${value}`);
+    keyboard.text(label, surveyAnswerData('a', sessionId, question.key, value));
     if (index < question.options.length - 1) {
       keyboard.row();
     }
@@ -196,13 +199,57 @@ async function replyWithQuestion(
 }
 
 export function feedbackKeyboard(sessionId: string, gameId: string): InlineKeyboard {
+  const callbackData = (rating: number) =>
+    `f:${encodeCallbackId(sessionId)}:${encodeCallbackId(gameId)}:${rating}`;
+
   return new InlineKeyboard()
-    .text('Подходит 👍', `feedback:rate:${sessionId}:${gameId}:5`)
-    .text('Не подходит 👎', `feedback:rate:${sessionId}:${gameId}:1`)
+    .text('Подходит 👍', callbackData(5))
+    .text('Не подходит 👎', callbackData(1))
     .row()
-    .text('Оценить ⭐', `feedback:rate:${sessionId}:${gameId}:1`)
-    .text('⭐⭐', `feedback:rate:${sessionId}:${gameId}:2`)
-    .text('⭐⭐⭐', `feedback:rate:${sessionId}:${gameId}:3`)
-    .text('⭐⭐⭐⭐', `feedback:rate:${sessionId}:${gameId}:4`)
-    .text('⭐⭐⭐⭐⭐', `feedback:rate:${sessionId}:${gameId}:5`);
+    .text('Оценить ⭐', callbackData(1))
+    .text('⭐⭐', callbackData(2))
+    .text('⭐⭐⭐', callbackData(3))
+    .text('⭐⭐⭐⭐', callbackData(4))
+    .text('⭐⭐⭐⭐⭐', callbackData(5));
+}
+
+function surveySessionData(action: 'r' | 'x', sessionId: string): string {
+  return `s:${action}:${encodeCallbackId(sessionId)}`;
+}
+
+function surveyAnswerData(
+  action: 'a' | 'v',
+  sessionId: string,
+  questionKey: SurveyQuestion['key'],
+  value: string,
+): string {
+  const questionIndex = surveyQuestions.findIndex((question) => question.key === questionKey);
+  const optionIndex = surveyQuestions[questionIndex]?.options.findIndex(
+    ([optionValue]) => optionValue === value,
+  );
+  if (questionIndex < 0 || optionIndex === undefined || optionIndex < 0) {
+    throw new Error('Survey callback data is not valid.');
+  }
+
+  return `s:${action}:${encodeCallbackId(sessionId)}:${questionIndex}:${optionIndex}`;
+}
+
+function encodeCallbackId(value: string): string {
+  if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)) {
+    return Buffer.from(value.replaceAll('-', ''), 'hex').toString('base64url');
+  }
+  return Buffer.from(value, 'utf8').toString('base64url');
+}
+
+function decodeCallbackId(value: string): string | undefined {
+  try {
+    const decoded = Buffer.from(value, 'base64url');
+    if (value.length === 22 && decoded.length === 16) {
+      const hex = decoded.toString('hex');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+    return decoded.toString('utf8');
+  } catch {
+    return undefined;
+  }
 }

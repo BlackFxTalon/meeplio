@@ -34,7 +34,7 @@ describe('Telegram bot', () => {
       {
         text: 'Meeplio поможет выбрать настольную игру для вашей компании и вечера. Ответьте на несколько коротких вопросов — и я предложу подходящие варианты.',
         replyMarkup: {
-          inline_keyboard: [[{ text: 'Подобрать', callback_data: 'pick:start' }]],
+          inline_keyboard: [[{ text: 'Подобрать', callback_data: 's:p' }]],
         },
       },
     ]);

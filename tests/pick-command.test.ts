@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createBot } from '../src/bot.js';
+import { createBot, feedbackKeyboard } from '../src/bot.js';
 import {
   SurveyService,
   type SurveyQuestionKey,
@@ -32,19 +32,62 @@ describe('/pick', () => {
     expect(replies).toHaveLength(1);
     expect(replies[0]?.text).toBe('Какое настроение у вашей компании?');
     expect((replies[0]?.replyMarkup as { inline_keyboard: unknown }).inline_keyboard).toEqual([
-      [{ text: 'Весёлая игра для общения', callback_data: 'survey:answer:session-1:mood:social' }],
-      [{ text: 'Спокойная семейная игра', callback_data: 'survey:answer:session-1:mood:family' }],
-      [{ text: 'Стратегия', callback_data: 'survey:answer:session-1:mood:strategy' }],
-      [{ text: 'Приключение или сюжет', callback_data: 'survey:answer:session-1:mood:adventure' }],
-      [{ text: 'Загадки и логика', callback_data: 'survey:answer:session-1:mood:puzzle' }],
-      [
-        {
-          text: 'Быстрая соревновательная игра',
-          callback_data: 'survey:answer:session-1:mood:competitive',
-        },
-      ],
+      [{ text: 'Весёлая игра для общения', callback_data: 's:a:c2Vzc2lvbi0x:0:0' }],
+      [{ text: 'Спокойная семейная игра', callback_data: 's:a:c2Vzc2lvbi0x:0:1' }],
+      [{ text: 'Стратегия', callback_data: 's:a:c2Vzc2lvbi0x:0:2' }],
+      [{ text: 'Приключение или сюжет', callback_data: 's:a:c2Vzc2lvbi0x:0:3' }],
+      [{ text: 'Загадки и логика', callback_data: 's:a:c2Vzc2lvbi0x:0:4' }],
+      [{ text: 'Быстрая соревновательная игра', callback_data: 's:a:c2Vzc2lvbi0x:0:5' }],
     ]);
     expect(repository.createdUserIds).toEqual([1]);
+  });
+
+  it('keeps every callback payload for a production UUID within Telegram’s 64-byte limit', async () => {
+    const repository = new InMemorySurveySessionRepository('6e8f71a9-3c72-43b8-9a47-7c9626c026d6');
+    const bot = createBot(
+      'test-token',
+      { botInfo },
+      { surveyService: new SurveyService(repository, () => new Date('2026-07-22T10:00:00Z')) },
+    );
+    const callbackPayloads: string[] = [];
+
+    bot.api.config.use(async (_previous, method, payload) => {
+      if (method === 'sendMessage') {
+        const message = payload as {
+          reply_markup: { inline_keyboard: Array<Array<{ callback_data: string }>> };
+        };
+        callbackPayloads.push(
+          ...message.reply_markup.inline_keyboard.flat().map((button) => button.callback_data),
+        );
+      }
+
+      return { ok: true, result: true } as never;
+    });
+
+    await bot.handleUpdate(commandUpdate('/pick'));
+
+    expect(callbackPayloads).not.toHaveLength(0);
+    expect(callbackPayloads.every((payload) => Buffer.byteLength(payload, 'utf8') <= 64)).toBe(
+      true,
+    );
+  });
+
+  it('keeps feedback callbacks for production UUIDs within Telegram’s 64-byte limit', () => {
+    const keyboard = feedbackKeyboard(
+      '6e8f71a9-3c72-43b8-9a47-7c9626c026d6',
+      '6b25c5df-13b8-4475-948c-0f7989c3bb07',
+    );
+    const callbackPayloads = keyboard.inline_keyboard
+      .flat()
+      .filter(
+        (button): button is { text: string; callback_data: string } => 'callback_data' in button,
+      )
+      .map((button) => button.callback_data);
+
+    expect(callbackPayloads).not.toHaveLength(0);
+    expect(callbackPayloads.every((payload) => Buffer.byteLength(payload, 'utf8') <= 64)).toBe(
+      true,
+    );
   });
 });
 
@@ -82,6 +125,8 @@ class InMemorySurveySessionRepository implements SurveySessionRepository {
   readonly createdUserIds: number[] = [];
   private session: SurveySession | null = null;
 
+  constructor(private readonly sessionId = 'session-1') {}
+
   async findById(sessionId: string): Promise<SurveySession | null> {
     return this.session?.id === sessionId ? this.session : null;
   }
@@ -93,7 +138,7 @@ class InMemorySurveySessionRepository implements SurveySessionRepository {
   async create(userId: number): Promise<SurveySession> {
     this.createdUserIds.push(userId);
     this.session = {
-      id: 'session-1',
+      id: this.sessionId,
       userId,
       answers: {},
       status: 'draft',

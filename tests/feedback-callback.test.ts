@@ -17,7 +17,7 @@ describe('feedback callbacks', () => {
       return { ok: true, result: true } as never;
     });
 
-    await bot.handleUpdate(callbackUpdate('feedback:rate:session-1:game-1:1'));
+    await bot.handleUpdate(callbackUpdate('f:c2Vzc2lvbi0x:Z2FtZS0x:1'));
 
     expect(repository.feedback).toEqual([
       { userId: 1, gameId: 'game-1', rating: 1, feedbackType: 'dislike' },
