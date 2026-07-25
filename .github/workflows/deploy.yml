@@ -61,6 +61,10 @@ jobs:
           GIT_SSH_COMMAND='ssh -i /root/.ssh/meeplio_deploy_key -o IdentitiesOnly=yes' \
             git fetch origin "$DEPLOY_SHA"
           git checkout --detach "$DEPLOY_SHA"
+          if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'; then
+            curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+            apt-get install -y nodejs
+          fi
           npm ci
           npm run build
           command -v pm2 >/dev/null 2>&1 || npm install --global pm2

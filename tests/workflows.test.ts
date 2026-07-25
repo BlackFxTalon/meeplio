@@ -30,6 +30,7 @@ describe('GitHub Actions workflows', () => {
     expect(workflow).toContain('git checkout --detach "$DEPLOY_SHA"');
     expect(workflow).toContain('StrictHostKeyChecking=yes');
     expect(workflow).toContain('-t ed25519');
+    expect(workflow).toContain('setup_22.x');
     expect(workflow).toContain('pm2 reload meeplio');
   });
 });
