@@ -70,4 +70,6 @@ jobs:
           command -v pm2 >/dev/null 2>&1 || npm install --global pm2
           pm2 reload meeplio --update-env || pm2 start dist/index.js --name meeplio --update-env
           pm2 save
+          printf '%s\n' '[DEBUG-bot-start] PM2 stderr tail follows'
+          pm2 logs meeplio --lines 80 --nostream --err
           REMOTE
