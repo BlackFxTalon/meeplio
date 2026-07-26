@@ -51,8 +51,8 @@ describe('catalog importer', () => {
     await writeFile(
       catalogPath,
       [
-        'title,bgg_id,min_players,max_players,min_age,play_time_min,play_time_max,complexity_score,categories,mechanics,moods,why_play,avoid_if',
-        'Крылья,266192,,5,,,,,"family|animals","engine-building","calm","Спокойная игра",""',
+        'title,bgg_id,min_players,max_players,min_age,play_time_min,play_time_max,complexity_score,categories,mechanics,moods,why_play,avoid_if,summary,image_url,source_url,display_genres',
+        'Крылья,266192,,5,,,,,family|animals,engine-building,calm,Спокойная игра,,Собирайте птиц,https://example.com/cover.jpg,https://example.com/game,Семейная|Стратегия',
       ].join('\n'),
     );
 
@@ -80,6 +80,10 @@ describe('catalog importer', () => {
         mechanic_ids: ['engine-building'],
         mood_tags: ['calm'],
         why_play: ['Спокойная игра'],
+        summary: 'Собирайте птиц',
+        image_url: 'https://example.com/cover.jpg',
+        source_url: 'https://example.com/game',
+        display_genres: ['Семейная', 'Стратегия'],
       },
     ]);
     expect(logger.errors).toEqual([]);

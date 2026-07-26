@@ -70,6 +70,10 @@ const catalogGameSchema = z
     moods: nullableStringArray,
     why_play: nullableStringArray,
     avoid_if: nullableStringArray,
+    summary: nullableString,
+    image_url: nullableString,
+    source_url: nullableString,
+    display_genres: nullableStringArray,
   })
   .superRefine((game, context) => {
     if (
@@ -112,6 +116,10 @@ export interface CatalogDatabaseRecord {
   mood_tags?: string[];
   why_play?: string[];
   avoid_if?: string[];
+  summary?: string;
+  image_url?: string;
+  source_url?: string;
+  display_genres?: string[];
   bgg_id?: number;
 }
 
@@ -262,6 +270,10 @@ function toDatabaseRecord(game: CatalogGame): CatalogDatabaseRecord {
     ...(game.moods === null ? {} : { mood_tags: game.moods }),
     ...(game.why_play === null ? {} : { why_play: game.why_play }),
     ...(game.avoid_if === null ? {} : { avoid_if: game.avoid_if }),
+    ...(game.summary === null ? {} : { summary: game.summary }),
+    ...(game.image_url === null ? {} : { image_url: game.image_url }),
+    ...(game.source_url === null ? {} : { source_url: game.source_url }),
+    ...(game.display_genres === null ? {} : { display_genres: game.display_genres }),
   };
 }
 
