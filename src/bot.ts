@@ -65,7 +65,8 @@ export function createBot(
     if (namespace === 'f' && action && encodedSessionId && questionIndex && feedbackService) {
       const feedbackSessionId = decodeCallbackId(action);
       const gameId = decodeCallbackId(encodedSessionId);
-      if (!feedbackSessionId || !gameId) {
+      const rating = questionIndex === 'd' ? 1 : questionIndex === 'l' ? 5 : undefined;
+      if (!feedbackSessionId || !gameId || rating === undefined) {
         return;
       }
       await context.answerCallbackQuery();
@@ -73,7 +74,7 @@ export function createBot(
         userId: context.from.id,
         sessionId: feedbackSessionId,
         gameId,
-        rating: Number(questionIndex),
+        rating,
       });
       await context.reply(
         feedbackType === 'dislike' ? 'Учту: эту игру больше не предложу.' : 'Спасибо за оценку!',
@@ -199,18 +200,12 @@ async function replyWithQuestion(
 }
 
 export function feedbackKeyboard(sessionId: string, gameId: string): InlineKeyboard {
-  const callbackData = (rating: number) =>
-    `f:${encodeCallbackId(sessionId)}:${encodeCallbackId(gameId)}:${rating}`;
+  const callbackData = (feedback: 'l' | 'd') =>
+    `f:${encodeCallbackId(sessionId)}:${encodeCallbackId(gameId)}:${feedback}`;
 
   return new InlineKeyboard()
-    .text('Подходит 👍', callbackData(5))
-    .text('Не подходит 👎', callbackData(1))
-    .row()
-    .text('Оценить ⭐', callbackData(1))
-    .text('⭐⭐', callbackData(2))
-    .text('⭐⭐⭐', callbackData(3))
-    .text('⭐⭐⭐⭐', callbackData(4))
-    .text('⭐⭐⭐⭐⭐', callbackData(5));
+    .text('Подходит 👍', callbackData('l'))
+    .text('Не подходит 👎', callbackData('d'));
 }
 
 function surveySessionData(action: 'r' | 'x', sessionId: string): string {

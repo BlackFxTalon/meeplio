@@ -17,7 +17,7 @@ describe('feedback callbacks', () => {
       return { ok: true, result: true } as never;
     });
 
-    await bot.handleUpdate(callbackUpdate('f:c2Vzc2lvbi0x:Z2FtZS0x:1'));
+    await bot.handleUpdate(callbackUpdate('f:c2Vzc2lvbi0x:Z2FtZS0x:d'));
 
     expect(repository.feedback).toEqual([
       { userId: 1, gameId: 'game-1', rating: 1, feedbackType: 'dislike' },
@@ -26,8 +26,8 @@ describe('feedback callbacks', () => {
     expect(replies).toEqual(['Учту: эту игру больше не предложу.']);
   });
 
-  it('builds buttons for like, dislike, and five ratings', () => {
-    expect(feedbackKeyboard('session-1', 'game-1').inline_keyboard.flat()).toHaveLength(7);
+  it('builds only like and dislike buttons', () => {
+    expect(feedbackKeyboard('session-1', 'game-1').inline_keyboard.flat()).toHaveLength(2);
   });
 });
 
