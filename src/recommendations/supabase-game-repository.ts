@@ -15,6 +15,10 @@ type BoardGameRow = {
   category_ids: string[];
   mechanic_ids: string[];
   mood_tags: string[];
+  summary: string | null;
+  image_url: string | null;
+  source_url: string | null;
+  display_genres: string[];
 };
 
 export class SupabaseGameRepository implements GameRepository {
@@ -24,7 +28,7 @@ export class SupabaseGameRepository implements GameRepository {
     const { data, error } = await this.supabase
       .from('board_games')
       .select(
-        'id, title, min_players, max_players, min_age, play_time_min, play_time_max, complexity_score, category_ids, mechanic_ids, mood_tags',
+        'id, title, min_players, max_players, min_age, play_time_min, play_time_max, complexity_score, category_ids, mechanic_ids, mood_tags, summary, image_url, source_url, display_genres',
       );
     if (error) throw error;
 
@@ -40,6 +44,10 @@ export class SupabaseGameRepository implements GameRepository {
       categoryIds: row.category_ids,
       mechanicIds: row.mechanic_ids,
       moodTags: row.mood_tags,
+      summary: row.summary,
+      imageUrl: row.image_url,
+      sourceUrl: row.source_url,
+      displayGenres: row.display_genres,
     }));
   }
 }

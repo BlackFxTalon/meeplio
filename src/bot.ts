@@ -2,6 +2,7 @@ import { Bot, InlineKeyboard, type BotConfig, type BotError, type Context } from
 
 import type { FeedbackService } from './feedback/service.js';
 import type { RecommendationService } from './recommendations/service.js';
+import type { Recommendation } from './recommendations/recommend.js';
 import {
   surveyQuestions,
   type SurveyQuestion,
@@ -124,10 +125,7 @@ export function createBot(
           return;
         }
         for (const recommendation of recommendations) {
-          await context.reply(
-            `${recommendation.game.title} — совпадение ${recommendation.score}/100`,
-            { reply_markup: feedbackKeyboard(result.session.id, recommendation.game.id) },
-          );
+          await replyWithRecommendation(context, result.session.id, recommendation);
         }
       } else if (result.kind === 'recovery') {
         await replyWithSurveyStart(context, result);
@@ -197,6 +195,29 @@ async function replyWithQuestion(
   }
 
   await context.reply(question.prompt, { reply_markup: keyboard });
+}
+
+async function replyWithRecommendation(
+  context: Context,
+  sessionId: string,
+  recommendation: Recommendation,
+): Promise<void> {
+  const { game } = recommendation;
+  const genres = game.displayGenres?.length ? `\nЖанры: ${game.displayGenres.join(', ')}` : '';
+  const summary = game.summary ? `\n${game.summary}` : '';
+  const source = game.sourceUrl ? `\nПодробнее: ${game.sourceUrl}` : '';
+  const text = `${game.title} — совпадение ${recommendation.score}/100${genres}${summary}${source}`;
+  const options = { reply_markup: feedbackKeyboard(sessionId, game.id) };
+
+  if (game.imageUrl) {
+    try {
+      await context.replyWithPhoto(game.imageUrl, { caption: text, ...options });
+      return;
+    } catch (error) {
+      console.error('Could not send recommendation image:', error);
+    }
+  }
+  await context.reply(text, options);
 }
 
 export function feedbackKeyboard(sessionId: string, gameId: string): InlineKeyboard {

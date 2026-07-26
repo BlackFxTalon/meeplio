@@ -21,6 +21,10 @@ export interface Game {
   categoryIds: string[];
   mechanicIds: string[];
   moodTags: string[];
+  summary?: string | null;
+  imageUrl?: string | null;
+  sourceUrl?: string | null;
+  displayGenres?: string[];
 }
 
 export interface Recommendation {
